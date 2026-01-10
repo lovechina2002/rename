@@ -11,7 +11,7 @@
  * fgf=-：字段分隔用 -
  * sn=：地区和序号之间不加 -，例如 香港01-...
  * 如需地区和序号之间也用 -，用 sn=-，会变成 香港-01-..
- * 如果希望“标签之间用空格，而不是用 -”，把这句ikeys = uniqTags.join(FGF); 改为 ikeys = uniqTags.join(" "); 即可
+ * 如果希望"标签之间用空格，而不是用 -"，把这句ikeys = uniqTags.join(FGF); 改为 ikeys = uniqTags.join(" "); 即可
  */
 
 const inArg = $arguments;
@@ -429,3 +429,7 @@ function fampx(pro) {
   return wnout.concat(wis);
 }
 
+// ============ Sub-Store 执行入口 ============
+// $content 是 Sub-Store 传入的节点数组
+// 必须返回处理后的节点数组
+operator($content);
