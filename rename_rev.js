@@ -83,11 +83,18 @@ const nx = argBool("nx"),
   nm = argBool("nm");
 
 
-const FGF = inArg.fgf == undefined ? " " : decodeURI(inArg.fgf),
-  XHFGF = inArg.sn == undefined ? " " : decodeURI(inArg.sn),
-  FNAME = inArg.name == undefined ? "" : decodeURI(inArg.name),
-  BLKEY = inArg.blkey == undefined ? "" : decodeURI(inArg.blkey),
-  blockquic = inArg.blockquic == undefined ? "" : decodeURI(inArg.blockquic),
+const argStr = (k, def = "") => {
+  if (inArg[k] === undefined) return def;
+  if (inArg[k] === true || inArg[k] === false) return ""; // 防止出现 "true"/"false"
+  return decodeURI(String(inArg[k]));
+};
+
+const FGF = argStr("fgf", " "),
+  XHFGF = argStr("sn", " "),
+  FNAME = argStr("name", ""),
+  BLKEY = argStr("blkey", ""),
+  blockquic = argStr("blockquic", "");
+
   nameMap = {
     cn: "cn",
     zh: "cn",
