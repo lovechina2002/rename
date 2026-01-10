@@ -67,8 +67,6 @@ const argBool = (k, def = false) => {
   return Boolean(v);
 };
 
-const SEQ_TAG = "__SEQ__";
-
 const nx = argBool("nx"),
   bl = argBool("bl"),
   nf = argBool("nf"),
@@ -83,37 +81,22 @@ const nx = argBool("nx"),
   nm = argBool("nm");
 
 
-const argStr = (k, def = "") => {
-  if (inArg[k] === undefined) return def;
-
-  const v = inArg[k];
-
-  // Sub-Store 可能把 sn= / fgf= 解析成 true 或 "true"
-  if (v === true || v === false) return "";
-
-  const s = String(v).trim();
-  const sl = s.toLowerCase();
-  if (sl === "true" || sl === "false") return "";
-
-  return decodeURI(s);
-};
-
-
-
-const nameMap = {
-  cn: "cn",
-  zh: "cn",
-  us: "us",
-  en: "us",
-  quan: "quan",
-  gq: "gq",
-  flag: "gq",
-};
-
-const inname = nameMap[inArg.in] || "";
-const outputName = nameMap[inArg.out] || "";
-
-
+const FGF = inArg.fgf == undefined ? " " : decodeURI(inArg.fgf),
+  XHFGF = inArg.sn == undefined ? " " : decodeURI(inArg.sn),
+  FNAME = inArg.name == undefined ? "" : decodeURI(inArg.name),
+  BLKEY = inArg.blkey == undefined ? "" : decodeURI(inArg.blkey),
+  blockquic = inArg.blockquic == undefined ? "" : decodeURI(inArg.blockquic),
+  nameMap = {
+    cn: "cn",
+    zh: "cn",
+    us: "us",
+    en: "us",
+    quan: "quan",
+    gq: "gq",
+    flag: "gq",
+  },
+  inname = nameMap[inArg.in] || "",
+  outputName = nameMap[inArg.out] || "";
 // prettier-ignore
 const FG = ['🇭🇰','🇲🇴','🇹🇼','🇯🇵','🇰🇷','🇸🇬','🇺🇸','🇬🇧','🇫🇷','🇩🇪','🇦🇺','🇦🇪','🇦🇫','🇦🇱','🇩🇿','🇦🇴','🇦🇷','🇦🇲','🇦🇹','🇦🇿','🇧🇭','🇧🇩','🇧🇾','🇧🇪','🇧🇿','🇧🇯','🇧🇹','🇧🇴','🇧🇦','🇧🇼','🇧🇷','🇻🇬','🇧🇳','🇧🇬','🇧🇫','🇧🇮','🇰🇭','🇨🇲','🇨🇦','🇨🇻','🇰🇾','🇨🇫','🇹🇩','🇨🇱','🇨🇴','🇰🇲','🇨🇬','🇨🇩','🇨🇷','🇭🇷','🇨🇾','🇨🇿','🇩🇰','🇩🇯','🇩🇴','🇪🇨','🇪🇬','🇸🇻','🇬🇶','🇪🇷','🇪🇪','🇪🇹','🇫🇯','🇫🇮','🇬🇦','🇬🇲','🇬🇪','🇬🇭','🇬🇷','🇬🇱','🇬🇹','🇬🇳','🇬🇾','🇭🇹','🇭🇳','🇭🇺','🇮🇸','🇮🇳','🇮🇩','🇮🇷','🇮🇶','🇮🇪','🇮🇲','🇮🇱','🇮🇹','🇨🇮','🇯🇲','🇯🇴','🇰🇿','🇰🇪','🇰🇼','🇰🇬','🇱🇦','🇱🇻','🇱🇧','🇱🇸','🇱🇷','🇱🇾','🇱🇹','🇱🇺','🇲🇰','🇲🇬','🇲🇼','🇲🇾','🇲🇻','🇲🇱','🇲🇹','🇲🇷','🇲🇺','🇲🇽','🇲🇩','🇲🇨','🇲🇳','🇲🇪','🇲🇦','🇲🇿','🇲🇲','🇳🇦','🇳🇵','🇳🇱','🇳🇿','🇳🇮','🇳🇪','🇳🇬','🇰🇵','🇳🇴','🇴🇲','🇵🇰','🇵🇦','🇵🇾','🇵🇪','🇵🇭','🇵🇹','🇵🇷','🇶🇦','🇷🇴','🇷🇺','🇷🇼','🇸🇲','🇸🇦','🇸🇳','🇷🇸','🇸🇱','🇸🇰','🇸🇮','🇸🇴','🇿🇦','🇪🇸','🇱🇰','🇸🇩','🇸🇷','🇸🇿','🇸🇪','🇨🇭','🇸🇾','🇹🇯','🇹🇿','🇹🇭','🇹🇬','🇹🇴','🇹🇹','🇹🇳','🇹🇷','🇹🇲','🇻🇮','🇺🇬','🇺🇦','🇺🇾','🇺🇿','🇻🇪','🇻🇳','🇾🇪','🇿🇲','🇿🇼','🇦🇩','🇷🇪','🇵🇱','🇬🇺','🇻🇦','🇱🇮','🇨🇼','🇸🇨','🇦🇶','🇬🇮','🇨🇺','🇫🇴','🇦🇽','🇧🇲','🇹🇱']
 // prettier-ignore
@@ -313,7 +296,6 @@ function operator(pro) {
     }
     if (findKey?.[1]) {
       const findKeyValue = findKey[1];
-      const findKeyValueWithSeq = `${findKeyValue}${SEQ_TAG}`; 
       let keyover = [],
         usflag = "";
       if (addflag) {
@@ -324,7 +306,7 @@ function operator(pro) {
         }
       }
       keyover = keyover
-        .concat(firstName, usflag, nNames, findKeyValueWithSeq, retainKey, ikey, ikeys)
+        .concat(firstName, usflag, nNames, findKeyValue, retainKey, ikey, ikeys)
         .filter((k) => k !== "");
       // 去重（防止 2倍率 重复出现）
       keyover = keyover.filter((v, i, a) => a.indexOf(v) === i);
@@ -348,40 +330,7 @@ function operator(pro) {
 // prettier-ignore
 function getList(arg) { switch (arg) { case 'us': return EN; case 'gq': return FG; case 'quan': return QC; default: return ZH; }}
 // prettier-ignore
-function jxh(list) {
-  const groups = new Map();
-
-  // 按“未编号的基础名”分组（此时包含 SEQ_TAG 占位符）
-  for (const item of list) {
-    const base = item.name;
-    if (!groups.has(base)) groups.set(base, []);
-    groups.get(base).push(item);
-  }
-
-  const out = [];
-  for (const [base, items] of groups.entries()) {
-    items.forEach((it, idx) => {
-      const num = String(idx + 1).padStart(2, "0");
-
-      let newName;
-      if (base.includes(SEQ_TAG)) {
-        // 把占位符替换为序号：香港__SEQ__-0.3倍率 => 香港01-0.3倍率
-        // 这里用 XHFGF 控制“地区名与序号之间”的分隔符；你要香港01就把 sn 设为空
-        newName = base.replace(SEQ_TAG, `${XHFGF}${num}`);
-      } else {
-        // 兼容旧行为：没有占位符就追加到末尾
-        newName = `${base}${XHFGF}${num}`;
-      }
-
-      out.push({ ...it, name: newName });
-    });
-  }
-
-  // 原地替换
-  list.splice(0, list.length, ...out);
-  return list;
-}
-
+function jxh(e) { const n = e.reduce((e, n) => { const t = e.find((e) => e.name === n.name); if (t) { t.count++; t.items.push({ ...n, name: `${n.name}${XHFGF}${t.count.toString().padStart(2, "0")}`, }); } else { e.push({ name: n.name, count: 1, items: [{ ...n, name: `${n.name}${XHFGF}01` }], }); } return e; }, []);const t=(typeof Array.prototype.flatMap==='function'?n.flatMap((e) => e.items):n.reduce((acc, e) => acc.concat(e.items),[])); e.splice(0, e.length, ...t); return e;}
 // prettier-ignore
 function oneP(e) { const t = e.reduce((e, t) => { const n = t.name.replace(/[^A-Za-z0-9\u00C0-\u017F\u4E00-\u9FFF]+\d+$/, ""); if (!e[n]) { e[n] = []; } e[n].push(t); return e; }, {}); for (const e in t) { if (t[e].length === 1 && t[e][0].name.endsWith("01")) {/* const n = t[e][0]; n.name = e;*/ t[e][0].name= t[e][0].name.replace(/[^.]01/, "") } } return e; }
 // prettier-ignore
