@@ -1,9 +1,8 @@
 /**
  * 基于：https://raw.githubusercontent.com/Keywos/rule/main/rename.js 修改
  * https://raw.githubusercontent.com/lovechina2002/Rename/main/rename_rev.js
- * 让其显示倍率、家宽等信息，参数#blgd&bl&fgf=-&sn=
- * 调用方法： https://raw.githubusercontent.com/lovechina2002/Rename/main/rename_rev.js#blgd&bl&fgf=-&sn=
- * 输出类似于 香港01-1.0倍率
+ * 让其显示倍率、家宽等信息，并用 - 分隔 ，参数#blgd&bl&fgf=-&sn=-
+ * 调用方法： https://raw.githubusercontent.com/lovechina2002/Rename/main/rename_rev.js#blgd&bl&fgf=-&sn=-
  * 用法：Sub-Store 脚本操作添加
  * rename.js 以下是此脚本支持的参数，必须以 # 为开头多个参数使用"&"连接，参考上述地址为例使用参数。 禁用缓存url#noCache
  *
@@ -172,6 +171,21 @@ function ObjKA(i) {
   AMK = Object.entries(i)
 }
 
+function formatRate(numStr) {
+  const n = Number(numStr);
+  if (!Number.isFinite(n)) return String(numStr);
+
+  // 整数直接变成 x.0
+  if (!String(numStr).includes(".")) return n.toFixed(1);
+
+  // 小数：去掉末尾 0；如果变成整数则补 .0
+  let s = String(numStr).replace(/0+$/, "");
+  s = s.replace(/\.$/, ""); // 5. -> 5
+  if (!s.includes(".")) s = s + ".0";
+  return s;
+}
+
+
 function operator(pro) {
   const Allmap = {};
   const outList = getList(outputName);
@@ -260,28 +274,40 @@ function operator(pro) {
 
     let ikey = "",
       ikeys = "";
-    // 保留固定格式 倍率
+
+    // 是否已经识别到“倍率”（用于决定要不要补默认 1.0）
+    let hasRate = false;
+
+    // 1) blgd：保留固定格式（ˣ²/ˣ³/...）以及 IPLC/家宽等
     if (blgd) {
       regexArray.forEach((regex, index) => {
         if (regex.test(e.name)) {
           ikeys = valueArray[index];
+
+          // valueArray 的前 13 个（0~12）是倍率：2~50 倍率
+          if (index <= 12) hasRate = true;
         }
       });
     }
 
-    // 正则 匹配倍率
+    // 2) bl：正则识别 “0.3x / x0.2 / 6x / 3倍 / 5.00倍率 ...”
     if (bl) {
       const match = e.name.match(
         /((倍率|X|x|×)\D?((\d{1,3}\.)?\d+)\D?)|((\d{1,3}\.)?\d+)(倍|X|x|×)/
       );
       if (match) {
-        const rev = match[0].match(/(\d[\d.]*)/)[0];
-        if (rev !== "1") {
-          const newValue = rev + "倍率";
-          ikey = newValue;
+        const rev = match[0].match(/(\d[\d.]*)/)[0]; // 取数字部分
+        const fr = formatRate(rev);
+        ikey = fr + "倍率";
+        hasRate = true;
+      } else {
+        // 3) 不写倍率：默认补 1.0倍率（仅在 bl 开启时）
+        if (!hasRate) {
+          ikey = "1.0倍率";
         }
       }
     }
+
 
     !GetK && ObjKA(Allmap)
     // 匹配 Allkey 地区
