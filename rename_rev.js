@@ -137,7 +137,7 @@ const regexArray = [
   /高级/,
   /标准/,
   /实验/,
-  /商宽/,
+  /(商宽|BIZ)/i,
   /(家宽|RES|HOME|FAM|🏠)/i,
   /游戏|game/i,
   /购物/,
@@ -147,6 +147,7 @@ const regexArray = [
   /\budp\b/i,
   /\bgpt\b/i,
   /udpn\b/i,
+  /\bBT\b/i,
 ];
 
 const valueArray = [
@@ -171,6 +172,7 @@ const valueArray = [
   "UDP",
   "GPT",
   "UDPN",
+  "BT",
 ];
 
 // 高倍/倍率过滤：支持普通倍率 + 任意 ˣ... 上标倍率（支持普通点 .）
