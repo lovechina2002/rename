@@ -273,25 +273,15 @@ function getRateUnified(name) {
   return "1.0倍率";
 }
 
-/**
- * Emby 专用倍率逻辑：
- * - 优先抓取 “x 0.2 / ×0.2 / x0.2” 等
- * - 若倍率数值在 (0,1) 内，则按你的期望：0.2 -> 2.0（乘 10）显示
- * - 否则按常规
- */
+
 function getEmbyRateSpecial(seg) {
   const mx = seg.match(/[xX×]\s*([0-9]+(?:\.[0-9]+)?)/);
   if (mx) {
     const v = Number(mx[1]);
-    if (Number.isFinite(v) && v > 0 && v < 1) return `${(v * 10).toFixed(1)}倍率`;
-    if (Number.isFinite(v) && v > 0) return `${v.toFixed(1)}倍率`;
+    if (Number.isFinite(v) && v > 0) return `${formatRate(mx[1])}倍率`;
   }
-
-  const r = getRateUnified(seg);
-  const mn = r.match(/([0-9]+(?:\.[0-9]+)?)/);
-  const v = mn ? Number(mn[1]) : NaN;
-  if (Number.isFinite(v) && v > 0 && v < 1) return `${(v * 10).toFixed(1)}倍率`;
-  return r;
+  // 兜底：用通用倍率识别（含 ˣ 上标倍率 / “3倍/1.5倍率”等）
+  return getRateUnified(seg);
 }
 
 /**
