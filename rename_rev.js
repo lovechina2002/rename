@@ -17,10 +17,11 @@
  * [in=quan] 识别英文全称
  *
  * [out=]   输出节点名可选参数: (cn或zh ，us或en ，gq或flag ，quan) 对应：(中文，英文缩写 ，国旗 ，英文全称) 默认中文 例如 [out=en] 或 out=us 输出英文缩写
- *** 分隔符参数
  *
+ *** 分隔符参数
  * [fgf=]   节点名前缀或国旗分隔符，默认为空格；
  * [sn=]    设置国家与序号之间的分隔符，默认为空格；
+ *
  * 序号参数
  * [one]    清理只有一个节点的地区的01
  * [flag]   给节点前面加国旗
@@ -28,12 +29,14 @@
  *** 前缀参数
  * [name=]  节点添加机场名称前缀；
  * [nf]     把 name= 的前缀值放在最前面
+ *
  *** 保留参数
  * [blkey=iplc+gpt+NF+IPLC] 用+号添加多个关键词 保留节点名的自定义字段 需要区分大小写!
  * 如果需要修改 保留的关键词 替换成别的 可以用 > 分割 例如 [#blkey=GPT>新名字+其他关键词] 这将把【GPT】替换成【新名字】
  * 例如      https://raw.githubusercontent.com/Keywos/rule/main/rename.js#flag&blkey=GPT>新名字+NF
- * [blgd]   保留: 家宽 IPLC BGP ˣ² 等（支持多特性累加）
- * [bl]     正则匹配保留 [0.1x, x0.2, 6x ,3倍]等标识（未写倍率默认补 1.0倍率）
+ *
+ * [blgd]   保留: 家宽 IPLC BGP 中转 优化 下载 ˣ² 等（可叠加显示）
+ * [bl]     正则匹配保留 [0.1x, x0.2, 6x ,3倍]等标识；未写倍率时补 1.0倍率
  * [nx]     保留1倍率与不显示倍率的
  * [blnx]   只保留高倍率
  * [clear]  清理乱名
@@ -42,6 +45,7 @@
  */
 
 const inArg = $arguments; // console.log(inArg)
+
 // 兼容 Sub-Store：#bl 可能解析成 ""（空字符串），用 inArg.bl || false 会变成 false
 const hasArg = (k) => Object.prototype.hasOwnProperty.call(inArg, k);
 const argBool = (k, def = false) => {
@@ -80,8 +84,11 @@ const nx = argBool("nx"),
   nm = argBool("nm");
 
 const XHFGF =
-  inArg.sn === undefined ? " " :
-  (inArg.sn === true ? "" : decodeURI(String(inArg.sn)).trim());
+  inArg.sn === undefined
+    ? " "
+    : inArg.sn === true
+    ? ""
+    : decodeURI(String(inArg.sn)).trim();
 
 const FGF = inArg.fgf == undefined ? " " : decodeURI(inArg.fgf),
   FNAME = inArg.name == undefined ? "" : decodeURI(inArg.name),
@@ -108,44 +115,37 @@ const ZH = ['香港','澳门','台湾','日本','韩国','新加坡','美国','�
 // prettier-ignore
 const QC = ['Hong Kong','Macao','Taiwan','Japan','Korea','Singapore','United States','United Kingdom','France','Germany','Australia','Dubai','Afghanistan','Albania','Algeria','Angola','Argentina','Armenia','Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','British Virgin Islands','Brunei','Bulgaria','Burkina-faso','Burundi','Cambodia','Cameroon','Canada','CapeVerde','CaymanIslands','Central African Republic','Chad','Chile','Colombia','Comoros','Congo-Brazzaville','Congo-Kinshasa','CostaRica','Croatia','Cyprus','Czech Republic','Denmark','Djibouti','Dominican Republic','Ecuador','Egypt','EISalvador','Equatorial Guinea','Eritrea','Estonia','Ethiopia','Fiji','Finland','Gabon','Gambia','Georgia','Ghana','Greece','Greenland','Guatemala','Guinea','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Isle of Man','Israel','Italy','Ivory Coast','Jamaica','Jordan','Kazakstan','Kenya','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Lithuania','Luxembourg','Macedonia','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar(Burma)','Namibia','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','NorthKorea','Norway','Oman','Pakistan','Panama','Paraguay','Peru','Philippines','Portugal','PuertoRico','Qatar','Romania','Russia','Rwanda','SanMarino','SaudiArabia','Senegal','Serbia','SierraLeone','Slovakia','Slovenia','Somalia','SouthAfrica','Spain','SriLanka','Sudan','Suriname','Swaziland','Sweden','Switzerland','Syria','Tajikstan','Tanzania','Thailand','Togo','Tonga','TrinidadandTobago','Tunisia','Turkey','Turkmenistan','U.S.Virgin Islands','Uganda','Ukraine','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe','Andorra','Reunion','Poland','Guam','Vatican','Liechtensteins','Curacao','Seychelles','Antarctica','Gibraltar','Cuba','Faroe Islands','Ahvenanmaa','Bermuda','Timor-Leste'];
 
-/**
- * #blpx 排序用：更新为识别 BGP/商宽/家宽 等
- */
 const specialRegex = [
-  /(\d\.)?\d+(×|倍率)/,
-  /IPLC|IEPL|BGP|Kern|Edge|Pro|Std|Exp|商宽|家宽|Game|Buy|Zx|LB/,
+  /(\d\.)?\d+(×|倍率)/i,
+  /IPLC|IEPL|BGP|中转|中轉|优化|優化|下载|下載|Kern|Edge|Pro|Std|Exp|商宽|家宽|RES|HOME|FAM|🏠|Game|Buy|Zx|LB/i,
 ];
 
 const nameclear =
   /(套餐|到期|有效|剩余|版本|已用|过期|失联|测试|官方|网址|备用|群|TEST|客服|网站|获取|订阅|流量|机场|下次|官址|联系|邮箱|工单|学术|USE|USED|TOTAL|EXPIRE|EMAIL)/i;
 
-/**
- * blgd 映射表：
- * - 前 13 个是倍率（ˣ²/ˣ³/...）：改为输出 2.0倍率/3.0倍率...
- * - 新增 BGP（兼容 BGP / B-G-P）
- * - 家宽扩展关键词：家宽/RES/HOME/FAM/🏠 -> 家宽
- */
 // prettier-ignore
 const regexArray=[
-  /ˣ²/, /ˣ³/, /ˣ⁴/, /ˣ⁵/, /ˣ⁶/, /ˣ⁷/, /ˣ⁸/, /ˣ⁹/, /ˣ¹⁰/,
-  /ˣ²⁰/, /ˣ³⁰/, /ˣ⁴⁰/, /ˣ⁵⁰/,
+  /ˣ²/, /ˣ³/, /ˣ⁴/, /ˣ⁵/, /ˣ⁶/, /ˣ⁷/, /ˣ⁸/, /ˣ⁹/, /ˣ¹⁰/, /ˣ²⁰/, /ˣ³⁰/, /ˣ⁴⁰/, /ˣ⁵⁰/,
   /IPLC/i, /IEPL/i, /(BGP|B-G-P)/i,
-  /核心/, /边缘/, /高级/, /标准/, /实验/,
-  /商宽/, /(家宽|RES|HOME|FAM|🏠)/i,
-  /游戏|game/i, /购物/, /专线/, /LB/, /cloudflare/i, /\budp\b/i, /\bgpt\b/i, /udpn\b/
+  /(中转|中轉|relay|transit|transfer)/i,
+  /(优化|優化|opt|optimize|optimization)/i,
+  /(下载|下載|download|\bdl\b)/i,
+  /核心/, /边缘/, /高级/, /标准/, /实验/, /商宽/,
+  /(家宽|RES|HOME|FAM|🏠)/i,
+  /游戏|game/i, /购物/, /专线/, /LB/, /cloudflare/i, /\budp\b/i, /\bgpt\b/i, /udpn\b/i
 ];
+
 // prettier-ignore
 const valueArray= [
   "2.0倍率","3.0倍率","4.0倍率","5.0倍率","6.0倍率","7.0倍率","8.0倍率","9.0倍率","10.0倍率",
   "20.0倍率","30.0倍率","40.0倍率","50.0倍率",
-  "IPLC","IEPL","BGP",
-  "Kern","Edge","Pro","Std","Exp",
-  "商宽","家宽",
-  "Game","Buy","Zx","LB","CF","UDP","GPT","UDPN"
+  "IPLC","IEPL","BGP","中转","优化","下载",
+  "Kern","Edge","Pro","Std","Exp","商宽","家宽","Game","Buy","Zx","LB","CF","UDP","GPT","UDPN"
 ];
 
-const nameblnx = /(高倍|(?!1)2+(x|倍|倍率)|ˣ²|ˣ³|ˣ⁴|ˣ⁵|ˣ¹⁰)/i;
-const namenx  = /(高倍|(?!1)(0\.|\d)+(x|倍|倍率)|ˣ²|ˣ³|ˣ⁴|ˣ⁵|ˣ¹⁰)/i;
+// 修正：兼容 2.0倍率 这类带小数的显示
+const nameblnx = /(高倍|(?!1)\d+(?:\.\d+)?(x|倍|倍率)|ˣ²|ˣ³|ˣ⁴|ˣ⁵|ˣ¹⁰)/i;
+const namenx  = /(高倍|(?!1)\d+(?:\.\d+)?(x|倍|倍率)|ˣ²|ˣ³|ˣ⁴|ˣ⁵|ˣ¹⁰)/i;
 
 const keya =
   /港|Hong|HK|新加坡|SG|Singapore|日本|Japan|JP|美国|United States|US|韩|土耳其|TR|Turkey|Korea|KR|🇸🇬|🇭🇰|🇯🇵|🇺🇸|🇰🇷|🇹🇷/i;
@@ -190,7 +190,8 @@ const rurekey = {
   Esnc: /esnc/gi,
 };
 
-let GetK = false, AMK = [];
+let GetK = false,
+  AMK = [];
 function ObjKA(i) {
   GetK = true;
   AMK = Object.entries(i);
@@ -215,6 +216,7 @@ function operator(pro) {
   const outList = getList(outputName);
   let inputList,
     retainKey = "";
+
   if (inname !== "") {
     inputList = [getList(inname)];
   } else {
@@ -242,12 +244,14 @@ function operator(pro) {
   const BLKEYS = BLKEY ? BLKEY.split("+") : "";
 
   pro.forEach((e) => {
-    let bktf = false, ens = e.name;
+    let bktf = false,
+      ens = e.name;
 
     // 预处理 防止预判或遗漏
     Object.keys(rurekey).forEach((ikey) => {
       if (rurekey[ikey].test(e.name)) {
         e.name = e.name.replace(rurekey[ikey], ikey);
+
         if (BLKEY) {
           bktf = true;
           let BLKEY_REPLACE = "",
@@ -266,9 +270,7 @@ function operator(pro) {
                 e.name += " " + i;
               }
             }
-            retainKey = re
-              ? BLKEY_REPLACE
-              : BLKEYS.filter((items) => e.name.includes(items));
+            retainKey = re ? BLKEY_REPLACE : BLKEYS.filter((items) => e.name.includes(items));
           });
         }
       }
@@ -294,63 +296,60 @@ function operator(pro) {
           }
         }
       });
-      retainKey = re
-        ? BLKEY_REPLACE
-        : BLKEYS.filter((items) => e.name.includes(items));
+      retainKey = re ? BLKEY_REPLACE : BLKEYS.filter((items) => e.name.includes(items));
     }
 
-    let ikey = "";             // 最终倍率字段（如 1.0倍率 / 0.3倍率 / 2.0倍率）
-    const tags = [];           // 多特性累加：IPLC/家宽/BGP/...
-    let rateFromBlgd = "";     // blgd 命中的 ˣ²/ˣ³/... 倍率（如 2.0倍率）
+    let ikey = "";          // 最终倍率字段（例如 1.0倍率 / 2.0倍率 / 0.3倍率）
+    const tags = [];        // 累加特性：IPLC/家宽/BGP/中转/优化/下载...
+    let rateFromBlgd = "";  // 若命中 ˣ²/ˣ³/... 这类倍率，保存为 2.0倍率/3.0倍率...
 
-    // 是否已经识别到“倍率”（用于决定要不要补默认 1.0）
-    let hasRate = false;
+    let hasRate = false;    // 必须在此处声明，避免污染全局
 
-    // 1) blgd：保留固定格式（ˣ²/ˣ³/...）以及 IPLC/家宽/BGP 等（支持多特性）
+    // 1) blgd：提取倍率（ˣ²...）和特性（IPLC/家宽/BGP/中转/优化/下载...），允许多项叠加
     if (blgd) {
       regexArray.forEach((regex, index) => {
         if (!regex.test(e.name)) return;
 
         const v = valueArray[index];
 
-        // valueArray 的前 13 个（0~12）是倍率：2~50 倍率
+        // 前 13 个（0~12）是倍率：2~50 倍率
         if (index <= 12) {
           hasRate = true;
-          rateFromBlgd = v; // 已经是 2.0倍率/3.0倍率...
+          rateFromBlgd = v; // 例如 "2.0倍率"
           return;
         }
 
-        // 其它是特性：IPLC/IEPL/BGP/商宽/家宽/...
+        // 其它是特性：累加
         tags.push(v);
       });
     }
 
-    // 2) bl：正则识别 “0.3x / x0.2 / 6x / 3倍 / 5.00倍率 ...”
+    // 2) bl：识别 "0.3x / x0.2 / 6x / 3倍 / 5.00倍率 ..."；未写倍率时补 1.0倍率
     if (bl) {
       const match = e.name.match(
         /((倍率|X|x|×)\D?((\d{1,3}\.)?\d+)\D?)|((\d{1,3}\.)?\d+)(倍|X|x|×)/
       );
+
       if (match) {
         const rev = match[0].match(/(\d[\d.]*)/)[0]; // 取数字部分
         const fr = formatRate(rev);
         ikey = fr + "倍率";
         hasRate = true;
+      } else if (rateFromBlgd) {
+        // bl 没识别到倍率，但 blgd 命中了 ˣ²/ˣ³/...，则用 blgd 的倍率
+        ikey = rateFromBlgd;
+        hasRate = true;
       } else {
-        // 3) 不写倍率：默认补 1.0倍率（仅在 bl 开启时）
+        // 不写倍率：默认补 1.0倍率（仅在 bl 开启时）
         if (!hasRate) {
           ikey = "1.0倍率";
         }
       }
     }
 
-    // 如果 bl 没识别到，但 blgd 命中了 ˣ²/ˣ³/...，则用 blgd 的倍率（2.0倍率等）
-    if (!ikey && rateFromBlgd) {
-      ikey = rateFromBlgd;
-    }
-
     !GetK && ObjKA(Allmap);
 
-    // 匹配 Allkey 地区
+    // 匹配地区
     const findKey = AMK.find(([key]) => e.name.includes(key));
 
     let firstName = "",
@@ -364,8 +363,8 @@ function operator(pro) {
 
     if (findKey?.[1]) {
       const findKeyValue = findKey[1];
-      let usflag = "";
 
+      let usflag = "";
       if (addflag) {
         const index = outList.indexOf(findKeyValue);
         if (index !== -1) {
@@ -376,14 +375,13 @@ function operator(pro) {
 
       const uniq = (arr) => arr.filter((v, i, a) => a.indexOf(v) === i);
 
-      // 1) “基名”只用于分组编号：前缀/国旗/机场名/国家（不含倍率等尾巴）
+      // “基名”只用于分组编号：前缀/国旗/机场名/国家（不含倍率等尾巴）
       const baseParts = uniq([firstName, usflag, nNames, findKeyValue].filter((k) => k !== ""));
-
-      // 2) “尾巴”支持多特性：retainKey + tags... + ikey（倍率）
+      // “尾巴”用于显示：自定义保留字段 + 特性（可多项） + 倍率
       const tailParts = uniq([retainKey, ...tags, ikey].filter((k) => k !== ""));
 
-      e.__baseName = baseParts.join(FGF); // 用于编号分组
-      e.__tailName = tailParts.join(FGF); // 特性/倍率等放这里
+      e.__baseName = baseParts.join(FGF);
+      e.__tailName = tailParts.join(FGF);
 
       // 临时名（后面 jxh 会重排为：基名 + 序号 + 尾巴）
       e.name = e.__tailName ? `${e.__baseName}${FGF}${e.__tailName}` : e.__baseName;
@@ -419,8 +417,6 @@ function jxh(pro) {
     const tail = p.__tailName || "";
 
     // 输出结构 = 基名 + (sn) + 序号 + (fgf) + 尾巴
-    // - sn=-  => 香港-01-家宽-1.0倍率
-    // - sn=   => 香港01-家宽-1.0倍率
     p.name = tail ? `${base}${XHFGF}${idx}${FGF}${tail}` : `${base}${XHFGF}${idx}`;
   }
 
@@ -461,8 +457,3 @@ function fampx(pro) {
   wnout.sort((a, b) => pro.indexOf(a) - pro.indexOf(b));
   return wnout.concat(wis);
 }
-
-// Sub-Store / Surge 脚本入口：保持与原脚本一致（如你的原脚本在末尾是 $done(operator($proxies))）
-// 不同运行环境变量名可能不同，按你原来的入口保留即可。
-// 常见写法示例：
-// $done({ proxies: operator($proxies) });
