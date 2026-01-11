@@ -90,8 +90,8 @@ const nameclear =
 // 信息行白名单：不允许被 clear 过滤，且不走 jxh 编号重命名
 const INFO_LINE_RE = /(剩余\s*流量|套餐\s*到期|到期|流量|剩余|USE|USED|TOTAL|EXPIRE)/i;
 
-// Emby 节点白名单：不允许被 nx/blnx/key/clear 过滤，也不要求地区匹配
-const EMBY_RE = /\bemby\b/i;
+// Emby 节点白名单：更稳（不依赖 \b 边界；emoji/符号都能识别）
+const EMBY_RE = /Emby/i;
 
 // 只保留“特性”枚举（倍率不再硬编码在这里）
 const regexArray = [
@@ -115,7 +115,7 @@ const regexArray = [
   /cloudflare/i,
   /\budp\b/i,
   /\bgpt\b/i,
-  /\bemby\b/i,
+  /emby/i,
   /udpn\b/i,
   /\bBT\b/i,
   /\bISP\b/i,
@@ -300,7 +300,7 @@ function getEmbyRateSpecial(seg) {
  * - 若没找到序号，则默认 01
  */
 function makeEmbyNodeName(original) {
-  const m = original.match(/\bEmby\b[^0-9]*0*([0-9]{1,3})/i);
+  const m = original.match(/Emby[^0-9]*0*([0-9]{1,3})/i);
   const idx = String(m ? Number(m[1]) : 1).padStart(2, "0");
   const rate = getEmbyRateSpecial(original);
   return `Emby${idx}${FGF}${rate}`;
@@ -308,14 +308,11 @@ function makeEmbyNodeName(original) {
 
 /**
  * 信息行专用：保持整行不变，只替换其中 Emby 段
- * 例如：
- *  剩余流量：... 🎬 Emby 01 x 0.2 套餐到期：2026-03-23
- *  -> 剩余流量：... 🎬 Emby01-2.0倍率 套餐到期：2026-03-23
  */
 function rewriteEmbyInInfoLine(line) {
-  // 捕获类似 “Emby 01 ...倍率/ x0.2 ...” 的片段
+  // 捕获类似 “Emby 01 ...倍率/ x0.2 ...” 的片段（不依赖 \b）
   const re =
-    /\bEmby\b\s*0*[0-9]{1,3}(?:\s*(?:[xX×]\s*[0-9]+(?:\.[0-9]+)?)|\s*[0-9]+(?:\.[0-9]+)?\s*(?:倍|倍率)|\s*(?:倍|倍率)\s*[0-9]+(?:\.[0-9]+)?)?/i;
+    /Emby\s*0*[0-9]{1,3}(?:\s*(?:[xX×]\s*[0-9]+(?:\.[0-9]+)?)|\s*[0-9]+(?:\.[0-9]+)?\s*(?:倍|倍率)|\s*(?:倍|倍率)\s*[0-9]+(?:\.[0-9]+)?)?/i;
 
   const m = line.match(re);
   if (!m) return line;
