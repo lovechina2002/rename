@@ -35,8 +35,8 @@
  * 如果需要修改 保留的关键词 替换成别的 可以用 > 分割 例如 [#blkey=GPT>新名字+其他关键词] 这将把【GPT】替换成【新名字】
  * 例如      https://raw.githubusercontent.com/Keywos/rule/main/rename.js#flag&blkey=GPT>新名字+NF
  *
- * [blgd]   保留: 家宽 IPLC ˣ² 等（支持 Misaka: ˣ¹˙⁵ 自动提取为 1.5倍率）
- * [bl]     正则匹配保留 [0.1x, x0.2, 6x ,3倍]等标识；若没有任何倍率则补 1.0倍率
+ * [blgd]   保留: 家宽 IPLC BGP 中转 优化 下载 ˣ² 等（可叠加显示）
+ * [bl]     正则匹配保留 [0.1x, x0.2, 6x ,3倍]等标识；未写倍率时补 1.0倍率
  * [nx]     保留1倍率与不显示倍率的
  * [blnx]   只保留高倍率
  * [clear]  清理乱名
@@ -87,8 +87,8 @@ const XHFGF =
   inArg.sn === undefined
     ? " "
     : inArg.sn === true
-      ? ""
-      : decodeURI(String(inArg.sn)).trim();
+    ? ""
+    : decodeURI(String(inArg.sn)).trim();
 
 const FGF = inArg.fgf == undefined ? " " : decodeURI(inArg.fgf),
   FNAME = inArg.name == undefined ? "" : decodeURI(inArg.name),
@@ -115,18 +115,16 @@ const ZH = ['香港','澳门','台湾','日本','韩国','新加坡','美国','�
 // prettier-ignore
 const QC = ['Hong Kong','Macao','Taiwan','Japan','Korea','Singapore','United States','United Kingdom','France','Germany','Australia','Dubai','Afghanistan','Albania','Algeria','Angola','Argentina','Armenia','Austria','Azerbaijan','Bahrain','Bangladesh','Belarus','Belgium','Belize','Benin','Bhutan','Bolivia','Bosnia and Herzegovina','Botswana','Brazil','British Virgin Islands','Brunei','Bulgaria','Burkina-faso','Burundi','Cambodia','Cameroon','Canada','CapeVerde','CaymanIslands','Central African Republic','Chad','Chile','Colombia','Comoros','Congo-Brazzaville','Congo-Kinshasa','CostaRica','Croatia','Cyprus','Czech Republic','Denmark','Djibouti','Dominican Republic','Ecuador','Egypt','EISalvador','Equatorial Guinea','Eritrea','Estonia','Ethiopia','Fiji','Finland','Gabon','Gambia','Georgia','Ghana','Greece','Greenland','Guatemala','Guinea','Guyana','Haiti','Honduras','Hungary','Iceland','India','Indonesia','Iran','Iraq','Ireland','Isle of Man','Israel','Italy','Ivory Coast','Jamaica','Jordan','Kazakstan','Kenya','Kuwait','Kyrgyzstan','Laos','Latvia','Lebanon','Lesotho','Liberia','Libya','Lithuania','Luxembourg','Macedonia','Madagascar','Malawi','Malaysia','Maldives','Mali','Malta','Mauritania','Mauritius','Mexico','Moldova','Monaco','Mongolia','Montenegro','Morocco','Mozambique','Myanmar(Burma)','Namibia','Nepal','Netherlands','New Zealand','Nicaragua','Niger','Nigeria','NorthKorea','Norway','Oman','Pakistan','Panama','Paraguay','Peru','Philippines','Portugal','PuertoRico','Qatar','Romania','Russia','Rwanda','SanMarino','SaudiArabia','Senegal','Serbia','SierraLeone','Slovakia','Slovenia','Somalia','SouthAfrica','Spain','SriLanka','Sudan','Suriname','Swaziland','Sweden','Switzerland','Syria','Tajikstan','Tanzania','Thailand','Togo','Tonga','TrinidadandTobago','Tunisia','Turkey','Turkmenistan','U.S.Virgin Islands','Uganda','Ukraine','Uruguay','Uzbekistan','Venezuela','Vietnam','Yemen','Zambia','Zimbabwe','Andorra','Reunion','Poland','Guam','Vatican','Liechtensteins','Curacao','Seychelles','Antarctica','Gibraltar','Cuba','Faroe Islands','Ahvenanmaa','Bermuda','Timor-Leste'];
 
-// 让 #blpx 排序也识别上标倍率 + 常规倍率 + 特性
 const specialRegex = [
-  /ˣ[⁰¹²³⁴⁵⁶⁷⁸⁹˙·∙.．]+/i, // ˣ¹˙⁵ / ˣ² / ˣ¹⁰ ...
-  /(\d+(?:\.\d+)?)\s*(?:×|倍率|x|X)|(?:x|X|×)\s*(\d+(?:\.\d+)?)/i, // 0.3x / x0.2 / 3倍 / 5.00倍率 ...
+  /(\d\.)?\d+(×|倍率)/i,
+  /ˣ[⁰¹²³⁴⁵⁶⁷⁸⁹0-9˙.·⁻-]+/i, // 任意“ˣ上标/数字”倍率（支持普通点 .）
   /IPLC|IEPL|BGP|中转|中轉|优化|優化|下载|下載|Kern|Edge|Pro|Std|Exp|商宽|家宽|RES|HOME|FAM|🏠|Game|Buy|Zx|LB/i,
 ];
 
 const nameclear =
   /(套餐|到期|有效|剩余|版本|已用|过期|失联|测试|官方|网址|备用|群|TEST|客服|网站|获取|订阅|流量|机场|下次|官址|联系|邮箱|工单|学术|USE|USED|TOTAL|EXPIRE|EMAIL)/i;
 
-// 只枚举“特性”，倍率改为自动提取（支持 Misaka: ˣ¹˙⁵）
-/* prettier-ignore */
+// 只保留“特性”枚举（倍率不再硬编码在这里）
 const regexArray = [
   /IPLC/i,
   /IEPL/i,
@@ -134,32 +132,50 @@ const regexArray = [
   /(中转|中轉|relay|transit|transfer)/i,
   /(优化|優化|opt|optimize|optimization)/i,
   /(下载|下載|download|\bdl\b)/i,
-  /核心/i,
-  /边缘/i,
-  /高级/i,
-  /标准/i,
-  /实验/i,
-  /商宽/i,
+  /核心/,
+  /边缘/,
+  /高级/,
+  /标准/,
+  /实验/,
+  /商宽/,
   /(家宽|RES|HOME|FAM|🏠)/i,
   /游戏|game/i,
-  /购物/i,
-  /专线/i,
-  /LB/i,
+  /购物/,
+  /专线/,
+  /LB/,
   /cloudflare/i,
   /\budp\b/i,
   /\bgpt\b/i,
   /udpn\b/i,
 ];
 
-/* prettier-ignore */
 const valueArray = [
-  "IPLC","IEPL","BGP","中转","优化","下载",
-  "Kern","Edge","Pro","Std","Exp","商宽","家宽",
-  "Game","Buy","Zx","LB","CF","UDP","GPT","UDPN"
+  "IPLC",
+  "IEPL",
+  "BGP",
+  "中转",
+  "优化",
+  "下载",
+  "Kern",
+  "Edge",
+  "Pro",
+  "Std",
+  "Exp",
+  "商宽",
+  "家宽",
+  "Game",
+  "Buy",
+  "Zx",
+  "LB",
+  "CF",
+  "UDP",
+  "GPT",
+  "UDPN",
 ];
 
-const nameblnx = /(高倍|(?!1)2+(x|倍|倍率)|ˣ²|ˣ³|ˣ⁴|ˣ⁵|ˣ¹⁰)/i;
-const namenx  = /(高倍|(?!1)(0\.|\d)+(x|倍|倍率)|ˣ²|ˣ³|ˣ⁴|ˣ⁵|ˣ¹⁰)/i;
+// 高倍/倍率过滤：支持普通倍率 + 任意 ˣ... 上标倍率（支持普通点 .）
+const nameblnx = /(高倍|(?!1)\d+(?:\.\d+)?(x|倍|倍率)|ˣ[⁰¹²³⁴⁵⁶⁷⁸⁹0-9˙.·⁻-]+)/i;
+const namenx = /(高倍|(?!1)\d+(?:\.\d+)?(x|倍|倍率)|ˣ[⁰¹²³⁴⁵⁶⁷⁸⁹0-9˙.·⁻-]+)/i;
 
 const keya =
   /港|Hong|HK|新加坡|SG|Singapore|日本|Japan|JP|美国|United States|US|韩|土耳其|TR|Turkey|Korea|KR|🇸🇬|🇭🇰|🇯🇵|🇺🇸|🇰🇷|🇹🇷/i;
@@ -225,49 +241,69 @@ function formatRate(numStr) {
   return s;
 }
 
-// Misaka 上标倍率解析：ˣ¹˙⁵ / ˣ¹⁰ / ˣ² ...
-function decodeSuperscriptNumber(s) {
-  const map = {
-    "⁰": "0",
-    "¹": "1",
-    "²": "2",
-    "³": "3",
-    "⁴": "4",
-    "⁵": "5",
-    "⁶": "6",
-    "⁷": "7",
-    "⁸": "8",
-    "⁹": "9",
-    "˙": ".",
-    "·": ".",
-    "∙": ".",
-    ".": ".",
-    "．": ".",
-  };
+/**
+ * 统一倍率来源（优先级：普通倍率 > ˣ上标倍率 > 默认 1.0）
+ * 返回形如： "0.5倍率" / "1.5倍率" / "2.0倍率"
+ */
+const SUP_MAP = {
+  "⁰": "0",
+  "¹": "1",
+  "²": "2",
+  "³": "3",
+  "⁴": "4",
+  "⁵": "5",
+  "⁶": "6",
+  "⁷": "7",
+  "⁸": "8",
+  "⁹": "9",
+  "˙": ".", // 上标点
+  ".": ".", // 普通点
+  "·": ".", // 中点也按小数点处理（防一手）
+  "⁻": "-",
+  "-": "-",
+};
 
-  let out = "";
-  for (const ch of String(s)) {
-    if (map[ch] !== undefined) out += map[ch];
-  }
-
-  // 多个点：保留第一个点，后面的点去掉
-  const firstDot = out.indexOf(".");
-  if (firstDot !== -1) {
-    out = out.slice(0, firstDot + 1) + out.slice(firstDot + 1).replace(/\./g, "");
-  }
-
-  return out;
+function parseNormalRate(name) {
+  // 支持：0.1x / x0.2 / 6x / 3倍 / 5.00倍率 / ×1.5 等
+  const m = name.match(
+    /(?:倍率|[xX×])\s*([0-9]+(?:\.[0-9]+)?)|([0-9]+(?:\.[0-9]+)?)\s*(?:倍|倍率|[xX×])/
+  );
+  if (!m) return "";
+  const raw = (m[1] || m[2] || "").trim();
+  if (!raw) return "";
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return "";
+  return `${formatRate(raw)}倍率`;
 }
 
-function extractRateFromMisakaStyle(name) {
-  const m = String(name).match(/ˣ([⁰¹²³⁴⁵⁶⁷⁸⁹˙·∙.．]+)/i);
+function parseXRate(name) {
+  // 允许：ˣ⁰˙⁵ / ˣ¹˙⁵ / ˣ2.5 / ˣ0.5 / ˣ²⁰ ...
+  const m = name.match(/ˣ([⁰¹²³⁴⁵⁶⁷⁸⁹0-9˙.·⁻-]+)/);
   if (!m) return "";
+  const seq = m[1];
+  let s = "";
+  for (const ch of seq) {
+    if (SUP_MAP[ch] === undefined) return "";
+    s += SUP_MAP[ch];
+  }
 
-  const num = decodeSuperscriptNumber(m[1]);
-  if (!num) return "";
+  if (s.startsWith(".")) s = "0" + s;
+  if (s.endsWith(".")) s = s.slice(0, -1);
 
-  const fr = formatRate(num);
-  return fr + "倍率";
+  const n = Number(s);
+  if (!Number.isFinite(n)) return "";
+  return `${formatRate(String(s))}倍率`;
+}
+
+function getRateUnified(name) {
+  // 优先：普通倍率 > ˣ倍率 > 默认 1.0
+  const normal = parseNormalRate(name);
+  if (normal) return normal;
+
+  const xrate = parseXRate(name);
+  if (xrate) return xrate;
+
+  return "1.0倍率";
 }
 
 function operator(pro) {
@@ -343,7 +379,7 @@ function operator(pro) {
       delete e["block-quic"];
     }
 
-    // 自定义保留字段
+    // 自定义
     if (!bktf && BLKEY) {
       let BLKEY_REPLACE = "",
         re = false;
@@ -358,55 +394,33 @@ function operator(pro) {
       retainKey = re ? BLKEY_REPLACE : BLKEYS.filter((items) => e.name.includes(items));
     }
 
-    let ikey = "";          // 最终倍率字段：例如 1.0倍率 / 1.5倍率 / 2.0倍率
-    const tags = [];        // 特性累加：IPLC/家宽/BGP/中转/优化/下载...
-    let rateFromBlgd = "";  // blgd 自动提取到的倍率（主要来自 ˣ¹˙⁵ / ˣ² ...）
-    let hasRate = false;    // 必须声明，避免污染全局
+    const tags = []; // 累加特性：IPLC/家宽/BGP/中转/优化/下载...
+    let ikey = "";   // 最终倍率字段（例如 1.0倍率 / 2.0倍率 / 0.5倍率）
 
-    // 1) blgd：提取 Misaka 上标倍率 + 特性（允许多种特性同时存在）
+    // 需要显示倍率的开关：开启 bl 或 blgd 任意一个，就输出倍率（倍率来源由统一函数决定）
+    const needRate = bl || blgd;
+
+    // 1) blgd：累加特性（可多项叠加）
     if (blgd) {
-      // Misaka: ˣ¹˙⁵ 这类倍率
-      const misakaRate = extractRateFromMisakaStyle(e.name);
-      if (misakaRate) {
-        rateFromBlgd = misakaRate; // 例如 "1.5倍率"
-        hasRate = true;
-      }
-
-      // 特性提取
       regexArray.forEach((regex, index) => {
         if (!regex.test(e.name)) return;
         tags.push(valueArray[index]);
       });
     }
 
-    // 2) bl：正则识别 “0.3x / x0.2 / 6x / 3倍 / 5.00倍率 ...”
-    if (bl) {
-      const match = e.name.match(
-        /((倍率|X|x|×)\D?((\d{1,3}\.)?\d+)\D?)|((\d{1,3}\.)?\d+)(倍|X|x|×)/
-      );
-
-      if (match) {
-        const rev = match[0].match(/(\d[\d.]*)/)[0]; // 取数字部分
-        const fr = formatRate(rev);
-        ikey = fr + "倍率";
-        hasRate = true;
-      } else if (rateFromBlgd) {
-        // bl 没识别到倍率，但 blgd 命中了 ˣ¹˙⁵ / ˣ² / ˣ¹⁰ ...，则用 blgd 的倍率
-        ikey = rateFromBlgd;
-        hasRate = true;
-      } else {
-        // 不写倍率：默认补 1.0倍率（仅在 bl 开启时）
-        if (!hasRate) ikey = "1.0倍率";
-      }
+    // 2) 倍率：统一入口（优先普通倍率 > ˣ倍率 > 默认1.0）
+    if (needRate) {
+      ikey = getRateUnified(e.name);
     }
 
     !GetK && ObjKA(Allmap);
 
     // 匹配地区
-    const findKey = AMK.find(([k]) => e.name.includes(k));
+    const findKey = AMK.find(([key]) => e.name.includes(key));
 
     let firstName = "",
       nNames = "";
+
     if (nf) {
       firstName = FNAME;
     } else {
@@ -415,33 +429,25 @@ function operator(pro) {
 
     if (findKey?.[1]) {
       const findKeyValue = findKey[1];
-      let usflag = "";
 
+      let usflag = "";
       if (addflag) {
-        const idx = outList.indexOf(findKeyValue);
-        if (idx !== -1) {
-          usflag = FG[idx];
+        const index = outList.indexOf(findKeyValue);
+        if (index !== -1) {
+          usflag = FG[index];
           usflag = usflag === "🇹🇼" ? "🇨🇳" : usflag;
         }
       }
 
       const uniq = (arr) => arr.filter((v, i, a) => a.indexOf(v) === i);
 
-      // retainKey 可能是数组（filter 返回），这里强制扁平化，避免 join 变成逗号串
-      const retainArr = Array.isArray(retainKey)
-        ? retainKey
-        : retainKey
-          ? [retainKey]
-          : [];
-
-      // “基名”：只用于分组编号（不含倍率/特性）
+      // “基名”只用于分组编号：前缀/国旗/机场名/国家（不含倍率等尾巴）
       const baseParts = uniq([firstName, usflag, nNames, findKeyValue].filter((k) => k !== ""));
+      // “尾巴”用于显示：自定义保留字段 + 特性（可多项） + 倍率
+      const tailParts = uniq([retainKey, ...tags, ikey].filter((k) => k !== "" && k.length !== 0));
 
-      // “尾巴”：特性 + 倍率（按你要求：美国01-IPLC-家宽-1.0倍率）
-      const tailParts = uniq([...retainArr, ...tags, ikey].filter((k) => k !== ""));
-
-      e.__baseName = baseParts.join(FGF); // 用于编号分组
-      e.__tailName = tailParts.join(FGF); // 倍率/家宽/IPLC/BGP/中转/优化/下载等
+      e.__baseName = baseParts.join(FGF);
+      e.__tailName = tailParts.join(FGF);
 
       // 临时名（后面 jxh 会重排为：基名 + 序号 + 尾巴）
       e.name = e.__tailName ? `${e.__baseName}${FGF}${e.__tailName}` : e.__baseName;
@@ -477,8 +483,6 @@ function jxh(pro) {
     const tail = p.__tailName || "";
 
     // 输出结构 = 基名 + (sn) + 序号 + (fgf) + 尾巴
-    // sn=-  => 香港-01-0.3倍率
-    // sn=   => 香港01-0.3倍率
     p.name = tail ? `${base}${XHFGF}${idx}${FGF}${tail}` : `${base}${XHFGF}${idx}`;
   }
 
@@ -488,7 +492,9 @@ function jxh(pro) {
 function oneP(e) {
   const t = e.reduce((e, t) => {
     const n = t.name.replace(/[^A-Za-z0-9\u00C0-\u017F\u4E00-\u9FFF]+\d+$/, "");
-    if (!e[n]) e[n] = [];
+    if (!e[n]) {
+      e[n] = [];
+    }
     e[n].push(t);
     return e;
   }, {});
@@ -506,14 +512,14 @@ function fampx(pro) {
   const wnout = [];
   for (const proxy of pro) {
     const fan = specialRegex.some((regex) => regex.test(proxy.name));
-    if (fan) wis.push(proxy);
-    else wnout.push(proxy);
+    if (fan) {
+      wis.push(proxy);
+    } else {
+      wnout.push(proxy);
+    }
   }
   const sps = wis.map((proxy) => specialRegex.findIndex((regex) => regex.test(proxy.name)));
   wis.sort((a, b) => sps[wis.indexOf(a)] - sps[wis.indexOf(b)] || a.name.localeCompare(b.name));
   wnout.sort((a, b) => pro.indexOf(a) - pro.indexOf(b));
   return wnout.concat(wis);
 }
-
-// Sub-Store / Node.js
-module.exports = { operator };
