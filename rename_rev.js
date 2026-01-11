@@ -121,9 +121,13 @@ const specialRegex = [
   /IPLC|IEPL|BGP|中转|中轉|优化|優化|下载|下載|Kern|Edge|Pro|Std|Exp|商宽|家宽|RES|HOME|FAM|🏠|Game|Buy|Zx|LB/i,
 ];
 
-// 修改点：移除 到期/剩余/流量，避免 clear 过滤这些内容
+// 仍保留清理正则，但下面会对白名单（剩余/流量/到期等信息行）做“不过滤”处理
 const nameclear =
-  /(套餐|有效|版本|已用|过期|失联|测试|官方|网址|备用|群|TEST|客服|网站|获取|订阅|机场|下次|官址|联系|邮箱|工单|学术|USE|USED|TOTAL|EXPIRE|EMAIL)/i;
+  /(套餐|到期|有效|剩余|版本|已用|过期|失联|测试|官方|网址|备用|群|TEST|客服|网站|获取|订阅|流量|机场|下次|官址|联系|邮箱|工单|学术|USE|USED|TOTAL|EXPIRE|EMAIL)/i;
+
+// 信息行白名单：不允许被 clear 过滤，且不走 jxh 编号重命名
+const INFO_LINE_RE =
+  /(剩余\s*流量|套餐\s*到期|到期|流量|剩余|USE|USED|TOTAL|EXPIRE)/i;
 
 // 只保留“特性”枚举（倍率不再硬编码在这里）
 const regexArray = [
@@ -147,7 +151,7 @@ const regexArray = [
   /cloudflare/i,
   /\budp\b/i,
   /\bgpt\b/i,
-  /\bemby\b/i, // 修改点：Emby 作为特性标签自动提取
+  /\bemby\b/i, // Emby 作为特性标签自动提取
   /udpn\b/i,
   /\bBT\b/i,
   /\bISP\b/i,
@@ -175,7 +179,7 @@ const valueArray = [
   "CF",
   "UDP",
   "GPT",
-  "Emby", // 修改点：与 regexArray 对齐
+  "Emby",
   "UDPN",
   "BT",
   "ISP",
@@ -315,6 +319,45 @@ function getRateUnified(name) {
   return "1.0倍率";
 }
 
+/**
+ * Emby 信息行专用倍率逻辑：
+ * - 优先抓取 “x 0.2 / ×0.2 / x0.2” 这种写法
+ * - 若倍率数值在 (0,1) 内，则按“折扣”显示：0.2 -> 2.0（乘 10）以满足 Emby01-2.0倍率 的期望
+ * - 否则按常规统一倍率
+ */
+function getEmbyRateSpecial(seg) {
+  const mx = seg.match(/[xX×]\s*([0-9]+(?:\.[0-9]+)?)/);
+  if (mx) {
+    const v = Number(mx[1]);
+    if (Number.isFinite(v) && v > 0 && v < 1) return `${(v * 10).toFixed(1)}倍率`;
+    if (Number.isFinite(v) && v > 0) return `${v.toFixed(1)}倍率`;
+  }
+
+  const r = getRateUnified(seg); // 如 0.2倍率 / 2.0倍率
+  const mn = r.match(/([0-9]+(?:\.[0-9]+)?)/);
+  const v = mn ? Number(mn[1]) : NaN;
+  if (Number.isFinite(v) && v > 0 && v < 1) return `${(v * 10).toFixed(1)}倍率`;
+  return r;
+}
+
+/**
+ * 将信息行里的 “Emby 01 x 0.2” 这一段替换成 “Emby01-2.0倍率”（分隔符用 FGF）
+ * 其余如 “剩余流量：... / 套餐到期：...” 完全原样保留
+ */
+function rewriteEmbyInInfoLine(line) {
+  const re =
+    /\bEmby\b\s*0*([0-9]{1,3})\s*(?:(?:[xX×]\s*[0-9]+(?:\.[0-9]+)?)|(?:[0-9]+(?:\.[0-9]+)?\s*(?:倍|倍率))|(?:(?:倍|倍率)\s*[0-9]+(?:\.[0-9]+)?))?/i;
+
+  const m = line.match(re);
+  if (!m) return line;
+
+  const idx = String(Number(m[1])).padStart(2, "0");
+  const rate = getEmbyRateSpecial(m[0]); // 用匹配到的片段来取倍率
+  const newToken = `Emby${idx}${FGF}${rate}`;
+
+  return line.replace(m[0], newToken);
+}
+
 function operator(pro) {
   const Allmap = {};
   const outList = getList(outputName);
@@ -333,11 +376,14 @@ function operator(pro) {
     });
   });
 
+  // 过滤阶段：对“信息行白名单”一律不过滤（避免 clear 把“套餐到期/剩余流量”干掉）
   if (clear || nx || blnx || key) {
     pro = pro.filter((res) => {
       const resname = res.name;
+      const isInfoLine = INFO_LINE_RE.test(resname);
+
       const shouldKeep =
-        !(clear && nameclear.test(resname)) &&
+        !(clear && nameclear.test(resname) && !isInfoLine) &&
         !(nx && namenx.test(resname)) &&
         !(blnx && !nameblnx.test(resname)) &&
         !(key && !(keya.test(resname) && /2|4|6|7/i.test(resname)));
@@ -350,6 +396,15 @@ function operator(pro) {
   pro.forEach((e) => {
     let bktf = false,
       ens = e.name;
+
+    // 信息行：不走地区识别/编号重命名，只做 Emby 片段替换，其余原样保留
+    if (INFO_LINE_RE.test(e.name)) {
+      if (/\bemby\b/i.test(e.name)) {
+        e.name = rewriteEmbyInInfoLine(e.name);
+      }
+      e.__skipJxh = true; // 关键：避免 jxh 给它重新编号改名
+      return;
+    }
 
     // 预处理 防止预判或遗漏
     Object.keys(rurekey).forEach((ikey) => {
@@ -461,6 +516,7 @@ function operator(pro) {
       // 临时名（后面 jxh 会重排为：基名 + 序号 + 尾巴）
       e.name = e.__tailName ? `${e.__baseName}${FGF}${e.__tailName}` : e.__baseName;
     } else {
+      // 没匹配到地区：按 nm 决定是否保留
       if (nm) {
         e.name = FNAME + FGF + e.name;
       } else {
@@ -485,6 +541,9 @@ function jxh(pro) {
   const counter = Object.create(null);
 
   for (const p of pro) {
+    // 信息行：不参与编号改名（原样保留）
+    if (p.__skipJxh) continue;
+
     const base = p.__baseName || p.name; // 分组键：只看地区基名
     counter[base] = (counter[base] || 0) + 1;
 
