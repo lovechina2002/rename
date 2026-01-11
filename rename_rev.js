@@ -180,6 +180,8 @@ const TAG_DEFS = [
   { label: "Exp", re: /实验/ },
   { label: "商宽", re: /(商宽|BIZ)/i },
   { label: "家宽", re: /(家宽|RES|HOME|FAM|🏠)/i },
+  { label: "静态", re: /静态/i },
+  { label: "动态", re: /动态/i },
   { label: "Game", re: /游戏|game/i },
   { label: "Buy", re: /购物/ },
   { label: "Zx", re: /专线/ },
@@ -188,6 +190,7 @@ const TAG_DEFS = [
   { label: "UDP", re: /\budp\b/i },
   { label: "GPT", re: /\bgpt\b/i },
   { label: "Emby", re: /emby/i },
+
 
   // 例如以后要加 MISAKA，就在这里加：
   // { label: "MISAKA", re: /\bmisaka\b/i },
